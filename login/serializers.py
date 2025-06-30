@@ -3,6 +3,7 @@ from django.contrib.auth.models import User, Group
 from .models import UserProfile
 import re
 
+# ✅ Main User Serializer
 class UserSerializer(serializers.ModelSerializer):
     email = serializers.EmailField()
     mobile_number = serializers.CharField(max_length=15)
@@ -42,14 +43,8 @@ class UserSerializer(serializers.ModelSerializer):
             email=email
         )
 
-        # Assign role based on user count
         role = 'admin' if User.objects.count() == 1 else 'user'
-
-        profile = UserProfile.objects.create(user=user, role=role, mobile_number=mobile_number)
-
-        # Add to group using model
-        group, _ = Group.objects.get_or_create(name=role)
-        user.groups.add(group)
+        UserProfile.objects.create(user=user, role=role, mobile_number=mobile_number)
 
         return user
 
@@ -59,9 +54,8 @@ class UserSerializer(serializers.ModelSerializer):
         except UserProfile.DoesNotExist:
             return 'unknown'
 
-
-# ✅ This is required for saving auth_user_groups table entries manually
+# ✅ Serializer for manually saving to `auth_user_groups`
 class UserGroupsSerializer(serializers.ModelSerializer):
     class Meta:
-        model = User.groups.through  # Direct reference to auth_user_groups table
+        model = User.groups.through  # ← Custom model-level reference to `auth_user_groups`
         fields = ['user', 'group']

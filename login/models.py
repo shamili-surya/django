@@ -22,3 +22,10 @@ class ActivityLog(models.Model):
     action = models.CharField(max_length=50)
     timestamp = models.DateTimeField(auto_now_add=True)
     details = models.TextField(blank=True, null=True)
+
+class UserGroupMap(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    group = models.ForeignKey(Group, on_delete=models.CASCADE)
+
+    class Meta:
+        db_table = 'auth_user_groups'
