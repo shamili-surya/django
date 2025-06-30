@@ -10,7 +10,7 @@ from django.core.mail import send_mail
 from django.contrib.auth.hashers import check_password
 
 from .serializers import UserSerializer, UserGroupsSerializer
-from .models import UserProfile, PasswordHistory, ActivityLog, UserGroupMap
+from .models import UserProfile, PasswordHistory, ActivityLog
 
 token_generator = PasswordResetTokenGenerator()
 
