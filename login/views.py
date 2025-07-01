@@ -1,8 +1,8 @@
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework import status
-from django.contrib.auth import authenticate
-from django.contrib.auth.models import User, Group
+from django.contrib.auth import authenticate, get_user_model
+from django.contrib.auth.models import Group
 from django.contrib.auth.tokens import PasswordResetTokenGenerator
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from django.utils.encoding import force_bytes, force_str
@@ -10,8 +10,9 @@ from django.core.mail import send_mail
 from django.contrib.auth.hashers import check_password
 
 from .serializers import UserSerializer, UserGroupsSerializer
-from .models import UserProfile, PasswordHistory, ActivityLog
+from .models import PasswordHistory, ActivityLog
 
+User = get_user_model()
 token_generator = PasswordResetTokenGenerator()
 
 def save_password_history(user, new_password_hashed):
@@ -34,15 +35,25 @@ def register_user(request):
     if serializer.is_valid():
         user = serializer.save()
 
-        profile = UserProfile.objects.get(user=user)
-        profile.role = 'user'
-        profile.save()
+        # Assign group based on user.role
+        try:
+            user_role = Group.objects.get(name=user.role)
+        except Group.DoesNotExist:
+            return Response({
+                "message": f"Group '{user.role}' does not exist. Please create it.",
+                "status_code": 500
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-        user_role = Group.objects.get(name="user")
-        payload = {"user": user.pk, "group": user_role.pk}
+        payload = {"customuser": user.pk, "group": user_role.pk}  # <-- fixed here
         group_serializer = UserGroupsSerializer(data=payload)
         if group_serializer.is_valid():
             group_serializer.save()
+        else:
+            return Response({
+                "message": "Failed to assign group",
+                "errors": group_serializer.errors,
+                "status_code": 400
+            }, status=status.HTTP_400_BAD_REQUEST)
 
         ActivityLog.objects.create(user=user, action='register', details="User registered")
 
@@ -53,8 +64,8 @@ def register_user(request):
                 "id": user.id,
                 "username": user.username,
                 "email": user.email,
-                "role": profile.role,
-                "mobile_number": profile.mobile_number
+                "role": user.role,
+                "mobile_number": user.mobile_number
             },
             "message": "User registered successfully",
             "status_code": status.HTTP_201_CREATED
@@ -74,9 +85,8 @@ def login_user(request):
     user = authenticate(username=username, password=password)
 
     if user:
-        profile = UserProfile.objects.get(user=user)
         ActivityLog.objects.create(user=user, action='login', details="User logged in")
-        return Response({'message': 'Login successful', 'role': profile.role}, status=status.HTTP_200_OK)
+        return Response({'message': 'Login successful', 'role': user.role}, status=status.HTTP_200_OK)
 
     return Response({'error': 'Invalid credentials'}, status=status.HTTP_401_UNAUTHORIZED)
 
@@ -85,7 +95,7 @@ def list_users(request):
     users = User.objects.all()
     data = []
     for user in users:
-        role = getattr(user.userprofile, 'role', 'unknown')
+        role = getattr(user, 'role', 'unknown')
         data.append({
             'username': user.username,
             'email': user.email,
@@ -162,14 +172,11 @@ def change_user_role(request):
 
     try:
         user = User.objects.get(username=username)
-        profile = user.userprofile
     except User.DoesNotExist:
         return Response({"message": "User not found", "status_code": 404}, status=status.HTTP_404_NOT_FOUND)
-    except UserProfile.DoesNotExist:
-        return Response({"message": "UserProfile not found", "status_code": 404}, status=status.HTTP_404_NOT_FOUND)
 
-    profile.role = new_role
-    profile.save()
+    user.role = new_role
+    user.save()
 
     user.groups.clear()
 
@@ -181,7 +188,7 @@ def change_user_role(request):
             "status_code": 500
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-    group_data = {"user": user.pk, "group": group.pk}
+    group_data = {"customuser": user.pk, "group": group.pk}  # <-- fixed here
     group_serializer = UserGroupsSerializer(data=group_data)
     if group_serializer.is_valid():
         group_serializer.save()
@@ -203,6 +210,6 @@ def change_user_role(request):
         "status_code": 200,
         "user": {
             "username": user.username,
-            "new_role": profile.role
+            "new_role": user.role
         }
     }, status=status.HTTP_200_OK)

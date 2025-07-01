@@ -1,9 +1,11 @@
+# serializers.py
+
 from rest_framework import serializers
-from django.contrib.auth.models import User, Group
-from .models import UserProfile
+from django.contrib.auth import get_user_model
 import re
 
-# ✅ Main User Serializer
+User = get_user_model()
+
 class UserSerializer(serializers.ModelSerializer):
     email = serializers.EmailField()
     mobile_number = serializers.CharField(max_length=15)
@@ -37,25 +39,24 @@ class UserSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         mobile_number = validated_data.pop('mobile_number')
         email = validated_data.pop('email')
+
+        # Assign role 'admin' if first user, else 'user'
+        role = 'admin' if User.objects.count() == 0 else 'user'
+
         user = User.objects.create_user(
             username=validated_data['username'],
             password=validated_data['password'],
-            email=email
+            email=email,
+            role=role,
+            mobile_number=mobile_number
         )
-
-        role = 'admin' if User.objects.count() == 1 else 'user'
-        UserProfile.objects.create(user=user, role=role, mobile_number=mobile_number)
-
         return user
 
     def get_role(self, obj):
-        try:
-            return obj.userprofile.role
-        except UserProfile.DoesNotExist:
-            return 'unknown'
+        return obj.role if hasattr(obj, 'role') else 'unknown'
 
-# ✅ Serializer for manually saving to `auth_user_groups`
+
 class UserGroupsSerializer(serializers.ModelSerializer):
     class Meta:
-        model = User.groups.through  # ← Custom model-level reference to `auth_user_groups`
-        fields = ['user', 'group']
+        model = User.groups.through  # Intermediate table model for user-group relations
+        fields = ['customuser', 'group']  # use 'customuser' instead of 'user'

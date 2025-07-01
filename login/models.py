@@ -1,16 +1,8 @@
+from django.conf import settings
 from django.db import models
-from django.contrib.auth.models import User, Group
-
-class UserProfile(models.Model):
-    user = models.OneToOneField(User, on_delete=models.CASCADE)
-    role = models.CharField(max_length=10, default='user')
-    mobile_number = models.CharField(max_length=15, null=True, blank=True)
-
-    def __str__(self):
-        return f"{self.user.username} - {self.role}"
 
 class PasswordHistory(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     password = models.CharField(max_length=255)
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -18,9 +10,18 @@ class PasswordHistory(models.Model):
         ordering = ['-created_at']
 
 class ActivityLog(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     action = models.CharField(max_length=50)
     timestamp = models.DateTimeField(auto_now_add=True)
     details = models.TextField(blank=True, null=True)
 
 
+from django.contrib.auth.models import AbstractUser
+
+class CustomUser(AbstractUser):
+    ROLE_CHOICES = (
+        ('admin', 'Admin'),
+        ('user', 'User'),
+    )
+    role = models.CharField(max_length=10, choices=ROLE_CHOICES, default='user')
+    mobile_number = models.CharField(max_length=15, blank=True, null=True)
