@@ -3,7 +3,7 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
 import re
-
+from .models import Mail, MailRecipient  
 User = get_user_model()
 
 class UserSerializer(serializers.ModelSerializer):
@@ -60,3 +60,36 @@ class UserGroupsSerializer(serializers.ModelSerializer):
     class Meta:
         model = User.groups.through  # Intermediate table model for user-group relations
         fields = ['customuser', 'group']  # use 'customuser' instead of 'user'
+
+class MailRecipientSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = MailRecipient
+        fields = ['user', 'recipient_type']
+
+class MailSerializer(serializers.ModelSerializer):
+    to = serializers.ListField(child=serializers.EmailField(), write_only=True)
+    cc = serializers.ListField(child=serializers.EmailField(), write_only=True, required=False)
+    bcc = serializers.ListField(child=serializers.EmailField(), write_only=True, required=False)
+
+    class Meta:
+        model = Mail
+        fields = ['id', 'subject', 'body', 'to', 'cc', 'bcc', 'is_draft', 'created_at', 'sent_at']
+
+    def create(self, validated_data):
+        sender = self.context['request'].user
+        to_emails = validated_data.pop('to', [])
+        cc_emails = validated_data.pop('cc', [])
+        bcc_emails = validated_data.pop('bcc', [])
+
+        mail = Mail.objects.create(sender=sender, **validated_data)
+
+        for email, r_type in [(to_emails, 'to'), (cc_emails, 'cc'), (bcc_emails, 'bcc')]:
+            for addr in email:
+                try:
+                    user = User.objects.get(email=addr)
+                    MailRecipient.objects.create(mail=mail, user=user, recipient_type=r_type)
+                except User.DoesNotExist:
+                    continue  # Skip invalid emails
+
+        return mail
+
