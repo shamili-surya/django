@@ -56,7 +56,7 @@ class UserSerializer(serializers.ModelSerializer):
 
 class UserGroupsSerializer(serializers.ModelSerializer):
     class Meta:
-        model = User.groups.through  # Intermediate table model for user-group relations
+        model = User.groups.through  
         fields = ['customuser', 'group']  # use 'customuser' instead of 'user'
 
 class MailRecipientSerializer(serializers.ModelSerializer):
@@ -87,6 +87,6 @@ class MailSerializer(serializers.ModelSerializer):
                     user = User.objects.get(email=addr)
                     MailRecipient.objects.create(mail=mail, user=user, recipient_type=r_type)
                 except User.DoesNotExist:
-                    continue  # Skip invalid emails
+                    continue  
 
         return mail

@@ -42,7 +42,7 @@ def register_user(request):
     if serializer.is_valid():
         user = serializer.save()
 
-        # Assign group based on user.role
+       
         try:
             user_role = Group.objects.get(name=user.role)
         except Group.DoesNotExist:
@@ -51,7 +51,7 @@ def register_user(request):
                 "status_code": 500
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-        payload = {"customuser": user.pk, "group": user_role.pk}  # <-- fixed here
+        payload = {"customuser": user.pk, "group": user_role.pk}  
         group_serializer = UserGroupsSerializer(data=payload)
         if group_serializer.is_valid():
             group_serializer.save()
@@ -118,7 +118,7 @@ def list_users(request):
         })
     return Response(data, status=status.HTTP_200_OK)
 
-from django.core.mail import send_mail as django_send_mail  # ✅ alias to avoid conflict
+from django.core.mail import send_mail as django_send_mail  
 
 @api_view(['POST'])
 def forgot_password(request):
@@ -135,7 +135,7 @@ def forgot_password(request):
     token = token_generator.make_token(user)
     reset_url = f"http://127.0.0.1:8000/api/reset-password/{uidb64}/{token}/"
 
-    # ✅ Use Django's email function safely
+    
     django_send_mail(
         subject='Reset Your Password',
         message=f'Click the link to reset your password:\n{reset_url}',
@@ -262,6 +262,7 @@ def send_mail(request):
 
 
 @api_view(['GET'])
+@permission_classes([IsAuthenticated])
 def inbox(request):
     user = request.user
     recipient_entries = MailRecipient.objects.filter(user=user).select_related('mail').order_by('-mail__created_at')
@@ -289,6 +290,7 @@ def inbox(request):
 
 
 @api_view(['GET'])
+@permission_classes([IsAuthenticated])
 def sent_mails(request):
     user = request.user
     mails = Mail.objects.filter(sender=user, is_draft=False).order_by('-sent_at')
@@ -314,6 +316,7 @@ def sent_mails(request):
     }, status=status.HTTP_200_OK)
 
 @api_view(['GET'])
+@permission_classes([IsAuthenticated])
 def draft_mails(request):
     user = request.user
     drafts = Mail.objects.filter(sender=user, is_draft=True).order_by('-created_at')
@@ -338,6 +341,7 @@ def draft_mails(request):
     }, status=status.HTTP_200_OK)
 
 @api_view(['GET'])
+@permission_classes([IsAuthenticated])
 def starred_mails(request):
     user = request.user
     starred_entries = MailRecipient.objects.filter(user=user, is_starred=True).select_related('mail').order_by('-mail__created_at')
