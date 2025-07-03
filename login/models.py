@@ -46,3 +46,4 @@ class MailRecipient(models.Model):
     recipient_type = models.CharField(max_length=3, choices=RECIPIENT_TYPE_CHOICES)
     is_starred = models.BooleanField(default=False)
     is_read = models.BooleanField(default=False)
+

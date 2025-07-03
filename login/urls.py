@@ -32,6 +32,6 @@ urlpatterns = [
     path('delete-mail/<int:mail_id>/', views.delete_mail),
     path('trash-mails/', views.trash_mails),
 
-    path('login/', TokenObtainPairView.as_view(), name='token_obtain_pair'),  # login
+    path('token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),  # login
     path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),  # refresh token
 ]
