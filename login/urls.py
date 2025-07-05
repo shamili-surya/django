@@ -1,6 +1,7 @@
 from django.urls import path
 from . import views
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
+from .views import export_report_pdf
 
 from .views import (
     register_user,
@@ -30,4 +31,8 @@ urlpatterns = [
 
     path('token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),  # login
     path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),  # refresh token
+
+    path('report-summary/', views.report_summary),
+    path('export-report-pdf/', export_report_pdf),
+
 ]

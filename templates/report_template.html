@@ -2,7 +2,7 @@
 <html>
 <head>
     <style>
-        body { font-family: Arial; }
+        body { font-family: Arial, sans-serif; margin: 20px; }
         h1 { color: teal; }
         table, th, td {
             border: 1px solid black;
@@ -10,18 +10,34 @@
         }
         th, td {
             padding: 8px;
+            text-align: left;
+        }
+        .summary {
+            margin-bottom: 20px;
         }
     </style>
 </head>
 <body>
-    <h1>{{ title }}</h1>
-    <p><strong>Username:</strong> {{ username }}</p>
-    <h3>Activity Log:</h3>
+    <h1>User Activity Report</h1>
+
+    <div class="summary">
+        <p><strong>Username:</strong> {{ username }}</p>
+        <p><strong>Total Users:</strong> {{ total_users }}</p>
+        <p><strong>Total Sent:</strong> {{ total_sent }}</p>
+        <p><strong>Total Received:</strong> {{ total_received }}</p>
+        <p><strong>Total Starred:</strong> {{ total_starred }}</p>
+    </div>
+
+    <h3>Recent Activity Log:</h3>
     <table>
-        <tr><th>S.No</th><th>Action</th><th>Timestamp</th></tr>
-        {% for log in logs %}
         <tr>
-            <td>{{ forloop.counter }}</td>
+            <th>S.No</th>
+            <th>Action</th>
+            <th>Timestamp</th>
+        </tr>
+        {% for log in activity_logs %}
+        <tr>
+            <td>{{ log.sno }}</td>
             <td>{{ log.action }}</td>
             <td>{{ log.timestamp }}</td>
         </tr>
