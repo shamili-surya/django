@@ -1,5 +1,6 @@
 from django.conf import settings
 from django.db import models
+from django.contrib.auth.models import AbstractUser
 
 class PasswordHistory(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
@@ -14,9 +15,6 @@ class ActivityLog(models.Model):
     action = models.CharField(max_length=50)
     timestamp = models.DateTimeField(auto_now_add=True)
     details = models.TextField(blank=True, null=True)
-
-
-from django.contrib.auth.models import AbstractUser
 
 class CustomUser(AbstractUser):
     ROLE_CHOICES = (
@@ -46,4 +44,4 @@ class MailRecipient(models.Model):
     recipient_type = models.CharField(max_length=3, choices=RECIPIENT_TYPE_CHOICES)
     is_starred = models.BooleanField(default=False)
     is_read = models.BooleanField(default=False)
-
+    is_deleted = models.BooleanField(default=False)  

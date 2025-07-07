@@ -303,3 +303,25 @@ def export_report_pdf(request):
     if not pdf.err:
         return HttpResponse(response.getvalue(), content_type='application/pdf')
     return Response({'message': 'Error generating PDF'}, status=500)
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def change_password(request):
+    user = request.user
+    current_password = request.data.get('current_password')
+    new_password = request.data.get('new_password')
+    confirm_password = request.data.get('confirm_password')
+    if not all([current_password, new_password, confirm_password]):
+        return Response({"message": "All password fields are required", "status_code": 400}, status=status.HTTP_400_BAD_REQUEST)
+    if not user.check_password(current_password):
+        return Response({"message": "Current password is incorrect", "status_code": 400}, status=status.HTTP_400_BAD_REQUEST)
+    if new_password != confirm_password:
+        return Response({"message": "New password and confirm password do not match", "status_code": 400}, status=status.HTTP_400_BAD_REQUEST)
+    if is_password_reused(user, new_password):
+        return Response({"message": "You cannot reuse the last 3 passwords", "status_code": 400}, status=status.HTTP_400_BAD_REQUEST)
+    user.set_password(new_password)
+    user.save()    
+    save_password_history(user, user.password)    
+    ActivityLog.objects.create(user=user, action='change_password', details="User changed password")
+    return Response({"message": "Password changed successfully", "status_code": 200}, status=status.HTTP_200_OK)
+

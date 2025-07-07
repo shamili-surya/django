@@ -35,4 +35,7 @@ urlpatterns = [
     path('report-summary/', views.report_summary),
     path('export-report-pdf/', export_report_pdf),
 
+    path('change-password/', views.change_password),
+
+
 ]
