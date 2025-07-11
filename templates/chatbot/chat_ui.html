@@ -1,22 +1,92 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>ChatBot</title>
+    <title>ChatBot 💬</title>
     <style>
-        body { font-family: Arial; background-color: #f0f0f0; padding: 50px; }
-        #chat { width: 500px; margin: auto; background: white; padding: 20px; border-radius: 10px; }
-        .msg { margin: 10px 0; }
-        .user { text-align: right; color: blue; }
-        .bot { text-align: left; color: green; }
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background-color: #f0f0f0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+
+        #chat {
+            width: 100%;
+            max-width: 550px;
+            background: #ffffff;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        h2 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 20px;
+        }
+
+        input[type="text"], input[type="file"] {
+            width: 100%;
+            padding: 12px;
+            margin: 8px 0;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            background-color: #fafafa;
+            box-sizing: border-box;
+            font-size: 14px;
+            color: #333;
+        }
+
+        button {
+            width: 100%;
+            padding: 12px;
+            background-color: #444;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #222;
+        }
+
+        .msg {
+            margin: 15px 0;
+            padding: 12px;
+            border-radius: 10px;
+            max-width: 85%;
+            word-wrap: break-word;
+            font-size: 14px;
+        }
+
+        .user {
+            background-color: #e0e0e0;
+            color: #000;
+            text-align: right;
+            margin-left: auto;
+        }
+
+        .bot {
+            background-color: #dcdcdc;
+            color: #1a1a1a;
+            margin-right: auto;
+        }
     </style>
 </head>
 <body>
     <div id="chat">
         <h2>ChatBot</h2>
-        <form method="post">
+
+        <form method="post" enctype="multipart/form-data">
             {% csrf_token %}
-            <input type="text" name="question" placeholder="Ask me something..." required style="width: 80%; padding: 10px;" />
-            <button type="submit" style="padding: 10px;">Send</button>
+            <input type="text" name="question" placeholder="Ask me something..." required />
+            <input type="file" name="pdf_file" accept=".pdf" />
+            <button type="submit">Send</button>
         </form>
 
         {% if answer %}
@@ -26,6 +96,3 @@
     </div>
 </body>
 </html>
-
-
-
