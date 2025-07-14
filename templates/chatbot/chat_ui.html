@@ -76,6 +76,24 @@
             color: #1a1a1a;
             margin-right: auto;
         }
+
+        .pdf-status {
+            font-size: 14px;
+            text-align: center;
+            margin-top: 5px;
+            color: green;
+        }
+
+        .pdf-status.error {
+            color: red;
+        }
+
+        footer {
+            text-align: center;
+            font-size: 12px;
+            color: #999;
+            margin-top: 20px;
+        }
     </style>
 </head>
 <body>
@@ -84,15 +102,24 @@
 
         <form method="post" enctype="multipart/form-data">
             {% csrf_token %}
-            <input type="text" name="question" placeholder="Ask me something..." required />
+            <input type="text" name="question" placeholder="Ask me something..." value="{{ request.POST.question }}" required />
             <input type="file" name="pdf_file" accept=".pdf" />
             <button type="submit">Send</button>
         </form>
 
-        {% if answer %}
-        <div class="msg user">You: {{ request.POST.question }}</div>
-        <div class="msg bot">Bot: {{ answer }}</div>
+        {% if request.session.pdf_context %}
+            <div class="pdf-status">📄 PDF uploaded and ready!</div>
+        {% else %}
+            <div class="pdf-status error">⚠️ No PDF uploaded yet.</div>
         {% endif %}
+
+        {% if answer %}
+            <div class="msg user"><strong>You:</strong> {{ request.POST.question }}</div>
+            <div class="msg bot"><strong>Bot:</strong> {{ answer }}</div>
+        {% endif %}
+
+        <footer>
+            Powered by <strong>Ollama + Gemma</strong> 
     </div>
 </body>
 </html>
