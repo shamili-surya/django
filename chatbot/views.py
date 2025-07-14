@@ -2,6 +2,7 @@ from django.shortcuts import render
 import fitz  # PyMuPDF
 import logging
 import requests
+from nltk.corpus import wordnet
 
 logger = logging.getLogger(__name__)
 
@@ -10,33 +11,73 @@ def extract_text_from_pdf(pdf_file):
     with fitz.open(stream=pdf_file.read(), filetype="pdf") as doc:
         return "\n\n".join([page.get_text() for page in doc])
 
-# ✅ Keyword-based paragraph filter (instead of fuzzy matching)
+# ✅ Get synonyms using WordNet
+def get_synonyms(word):
+    synonyms = set()
+    for syn in wordnet.synsets(word):
+        for lemma in syn.lemmas():
+            synonyms.add(lemma.name().lower().replace("_", " "))
+    return list(synonyms)
+
+# ✅ Improved paragraph filtering with keyword boosting
 def extract_top_matching_paragraphs(context, question, top_k=5):
     paragraphs = context.split("\n\n")
     keywords = question.lower().split()
 
+    all_keywords = set(keywords)
+    for word in keywords:
+        all_keywords.update(get_synonyms(word))
+
     matched = []
     for para in paragraphs:
-        match_count = sum(1 for word in keywords if word in para.lower())
-        if match_count > 0:
-            matched.append((match_count, para))
+        para_text = para.lower()
+        score = sum(1 for word in all_keywords if word in para_text)
 
-    top_paragraphs = [para for count, para in sorted(matched, reverse=True)[:top_k]]
+        boost_keywords = [
+            "advantages of django",
+            "features of django",
+            "key features",
+            "django provides",
+            "django has",
+            "django supports",
+            "django offers",
+            "django capabilities",
+            "framework support",
+            "orm support",
+            "history of django",
+            "django was started",
+            "django released",
+            "django created",
+            "django began",
+            "origin of django"
+        ]
 
-    return "\n\n".join(top_paragraphs) if top_paragraphs else context[:2000]
+        if any(boost in para_text for boost in boost_keywords):
+            score += 15
+
+        if score > 0:
+            matched.append((score, para))
+            print(f"✅ SCORE {score}: {para[:100]}...")
+
+    if not matched:
+        print("⚠️ No strong match found. Returning first few paragraphs.")
+        return "\n\n".join(paragraphs[:top_k])[:2000]
+
+    top_paragraphs = [para for score, para in sorted(matched, reverse=True)[:top_k]]
+    return "\n\n".join(top_paragraphs)[:2000]
 
 # ✅ Generate answer using Ollama + Gemma
 def get_best_answer_with_ollama(question, context):
     prompt = f"""
-    Use the following document content to answer the question.
+Use the following document content to answer the question.
 
-    Context:
-    {context[:4000]}
+Context:
+{context}
 
-    Question: {question}
-    """
+Question: {question}
+"""
     try:
-        print("🔍 Prompt to Gemma:\n", prompt)
+        print("\n🔍 Prompt to Gemma:\n", prompt)
         response = requests.post(
             'http://localhost:11434/api/generate',
             json={
@@ -44,10 +85,11 @@ def get_best_answer_with_ollama(question, context):
                 "prompt": prompt,
                 "stream": False
             },
-            timeout=60
+            timeout=180
         )
 
-        print("🟢 Ollama Response:", response.status_code, response.text)
+        print("🟢 Ollama Response Code:", response.status_code)
+        print("🟢 Ollama Raw Response Text:\n", response.text)
 
         if response.status_code == 200:
             data = response.json()
@@ -65,9 +107,24 @@ def chatbot_ui(request):
     context = ""
 
     if request.method == "POST":
-        question = request.POST.get("question", "").strip()
+        question = request.POST.get("question", "").strip().lower()
         pdf_file = request.FILES.get("pdf_file")
 
+        # ✅ Basic greetings and fallbacks
+        if question in ["hi", "hello", "hey"]:
+            answer = "Hello Shamili! How can I help you today?"
+            return render(request, 'chatbot/chat_ui.html', {'answer': answer})
+        elif "your name" in question:
+            answer = "I'm your chatbot."
+            return render(request, 'chatbot/chat_ui.html', {'answer': answer})
+        elif "how are you" in question:
+            answer = "I'm good, Shamili! How are you?"
+            return render(request, 'chatbot/chat_ui.html', {'answer': answer})
+        elif "bye" in question:
+            answer = "Bye Shamili! Come back soon!"
+            return render(request, 'chatbot/chat_ui.html', {'answer': answer})
+
+        # ✅ Load or reuse context
         if pdf_file:
             context = extract_text_from_pdf(pdf_file)
             request.session['pdf_context'] = context
@@ -79,16 +136,6 @@ def chatbot_ui(request):
             print("✅ Filtered Context:\n", relevant_context)
             answer = get_best_answer_with_ollama(question, relevant_context)
         else:
-            q = question.lower()
-            if "hi" in q or "hello" in q:
-                answer = "Hello Shamili! How can I help you today?"
-            elif "your name" in q:
-                answer = "I'm your chatbot."
-            elif "how are you" in q:
-                answer = "I'm good, Shamili! How are you?"
-            elif "bye" in q:
-                answer = "Bye Shamili! Come back soon!"
-            else:
-                answer = "⚠️ Please upload a PDF first to ask questions from it."
+            answer = "⚠️ Please upload a PDF first to ask questions from it."
 
     return render(request, 'chatbot/chat_ui.html', {'answer': answer})
